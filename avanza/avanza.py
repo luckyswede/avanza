@@ -21,6 +21,7 @@ from .constants import (
     TimePeriod,
     TransactionsDetailsType,
     Condition,
+    CreditType,
 )
 from .credentials import (
     backwards_compatible_serialization,
@@ -258,6 +259,15 @@ class Avanza:
             },
         )
 
+    def get_credit_info(self, credit_type: CreditType) -> CreditInfo:
+        """Returns creditinfo for accounts
+        CreditType->credited for accounts with credit
+        CreditType->uncredited for accounts with no credit
+        """
+        return self.__call(
+            HttpMethod.GET, Route.CREDITINFO_PATH.value.format(credit_type)
+        )
+
     def get_watchlists(self) -> List[WatchList]:
         """Get your "Bevakningslistor" """
         return self.__call(HttpMethod.GET, Route.WATCHLISTS_PATH.value)
@@ -460,12 +470,12 @@ class Avanza:
         )
         return result["hits"]
 
-    def get_order_books(self, order_book_ids: Sequence[str]) -> List[OrderBook]:
-        """Get info about multiple order books"""
 
+    def get_order_book(self, order_book_id: str)-> OrderBook:
+        """Get info about an orderbook"""
         return self.__call(
             HttpMethod.GET,
-            Route.ORDERBOOK_LIST_PATH.value.format(",".join(order_book_ids)),
+            Route.ORDERBOOK_PATH.value.format(order_book_id)
         )
 
     def get_insights_report(
