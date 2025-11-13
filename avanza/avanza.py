@@ -3,7 +3,7 @@ import math
 import time
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
-import requests
+import curl_cffi.requests as requests
 
 from avanza.entities import StopLossOrderEvent, StopLossTrigger
 from avanza.models import *
@@ -85,7 +85,7 @@ class Avanza:
         self._quiet = quiet
 
         self._authenticationTimeout = MAX_INACTIVE_MINUTES
-        self._session = requests.Session()
+        self._session = requests.Session(impersonate="chrome")
 
         try:
             response_body = self.__authenticate(credentials)
@@ -272,6 +272,13 @@ class Avanza:
         return self.__call(
             HttpMethod.POST,
             Route.WATCHLISTS_ADD_PATH.value.format(watchlist_id, instrument_id),
+        )
+
+    def get_market_status(self, market: str, day: str) -> str:
+        return self.__call(
+            HttpMethod.GET,
+            Route.MARKET_STATUS_PATH.value.format(market, day),
+            return_content=True
         )
 
     def remove_from_watchlist(self, instrument_id: str, watchlist_id: str) -> None:
