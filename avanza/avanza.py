@@ -4,6 +4,8 @@ import time
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 import curl_cffi.requests as requests
+import logging
+from logging.handlers import RotatingFileHandler
 
 from avanza.entities import StopLossOrderEvent, StopLossTrigger
 from avanza.models import *
@@ -32,6 +34,14 @@ from .credentials import (
 BASE_URL = "https://www.avanza.se"
 MIN_INACTIVE_MINUTES = 30
 MAX_INACTIVE_MINUTES = 60 * 24
+LOGFILE_BACKUPS = 2
+LOGFILE_MAX_BYTES = 1024 * 1024 * 100
+logger = logging.getLogger('http')
+info_handler = RotatingFileHandler('http.log', maxBytes=LOGFILE_MAX_BYTES, backupCount=LOGFILE_BACKUPS)
+info_handler.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
+info_handler.setLevel(logging.DEBUG)
+logger.addHandler(info_handler)
+logger.setLevel(logging.DEBUG)
 
 
 class Avanza:
@@ -189,6 +199,7 @@ class Avanza:
         else:
             data["json"] = options
 
+        logger.info(str(method) + " " + path)
         response = method_call(
             f"{BASE_URL}{path}",
             headers={
@@ -199,15 +210,17 @@ class Avanza:
 
         response.raise_for_status()
 
+        to_return = None
         # Some routes like add/remove instrument from a watch list
         # only returns 200 OK with no further data about if the operation succeeded
-        if len(response.content) == 0:
-            return None
+        if len(response.content) > 0:
+            if return_content:
+                to_return = response.content
+            else:
+                to_return = response.json()
 
-        if return_content:
-            return response.content
-
-        return response.json()
+        logger.info(str(response.status_code) + " " + str(to_return))
+        return to_return
 
     async def subscribe_to_id(
         self, channel: ChannelType, id: str, callback: Callable[[str, dict], Any]
@@ -287,8 +300,7 @@ class Avanza:
     def get_market_status(self, market: str, day: str) -> str:
         return self.__call(
             HttpMethod.GET,
-            Route.MARKET_STATUS_PATH.value.format(market, day),
-            return_content=True
+            Route.MARKET_STATUS_PATH.value.format(market, day)
         )
 
     def remove_from_watchlist(self, instrument_id: str, watchlist_id: str) -> None:

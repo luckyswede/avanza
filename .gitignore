@@ -23,6 +23,7 @@ share/python-wheels/
 MANIFEST
 
 # IDE
+*.iml
 .idea
 
 # Environments
